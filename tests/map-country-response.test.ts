@@ -66,6 +66,35 @@ describe('mapCountryResponse', () => {
     });
   });
 
+  it('should map detailed country properties for the country view', () => {
+    const raw: CountryApiResponse & {
+      area: number;
+      borders: string[];
+      currencies: Array<{ code: string; name: string; symbol: string }>;
+    } = {
+      name: 'Spain',
+      area: 505990,
+      borders: ['AND', 'FRA', 'GIB', 'PRT'],
+      currencies: [{ code: 'EUR', name: 'Euro', symbol: '€' }],
+    };
+
+    expect(mapCountryResponse(raw)).toMatchObject({
+      area: 505990,
+      borders: ['AND', 'FRA', 'GIB', 'PRT'],
+      currencies: [{ code: 'EUR', name: 'Euro', symbol: '€' }],
+    });
+  });
+
+  it('should provide defaults for missing detailed properties', () => {
+    const raw = { name: 'Nauru' } satisfies CountryApiResponse;
+
+    expect(mapCountryResponse(raw)).toMatchObject({
+      area: null,
+      borders: [],
+      currencies: [],
+    });
+  });
+
   it('should not modify the original API response', () => {
     const raw = {
       name: 'Spain',
