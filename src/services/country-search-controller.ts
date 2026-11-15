@@ -21,6 +21,8 @@ export class CountrySearchController {
 
   private requestVersion = 0;
 
+  private lastQuery: string | null = null;
+
   private readonly scheduleSearch: (query: string) => void;
 
   constructor(
@@ -37,21 +39,37 @@ export class CountrySearchController {
   handleInput(query: string): void {
     const normalizedQuery = query.trim();
 
-    // Invalidate the previous request immediately.
+    // Invalidate the previous request immediately, before the debounce delay.
     this.requestVersion += 1;
 
-    // Cancel the active request before starting another one.
+    // Abort the active network request as soon as the input changes.
     this.activeController?.abort();
     this.activeController = null;
 
     if (!normalizedQuery) {
-      // Reset the pending debounce timer without sending a request.
+      this.lastQuery = null;
       this.scheduleSearch('');
       this.onStateChange({ status: 'idle' });
       return;
     }
 
+    this.lastQuery = normalizedQuery;
+
+    // Update the UI immediately; the network request still waits for debounce.
+    this.onStateChange({
+      status: 'loading',
+      query: normalizedQuery,
+    });
+
     this.scheduleSearch(normalizedQuery);
+  }
+
+  retryLastSearch(): void {
+    if (this.lastQuery === null) {
+      return;
+    }
+
+    this.handleInput(this.lastQuery);
   }
 
   private async performSearch(query: string): Promise<void> {
@@ -60,19 +78,13 @@ export class CountrySearchController {
 
     this.activeController = controller;
 
-    this.onStateChange({
-      status: 'loading',
-      query,
-    });
-
     const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-
     const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal]);
 
     try {
       const rawCountries = await searchCountries(query, combinedSignal);
 
-      // Ignore results from outdated requests.
+      // Ignore results from outdated requests as an extra guard alongside abort().
       if (currentVersion !== this.requestVersion) {
         return;
       }
@@ -102,12 +114,12 @@ export class CountrySearchController {
 
       const errorType = classifySearchError(error);
 
-      // User-initiated cancellation is not an error.
+      // User-initiated cancellation is not an error shown to the user.
       if (errorType === 'abort') {
         return;
       }
 
-      // Timeout, HTTP and network errors should be displayed.
+      // Timeout, HTTP and network errors should be displayed with a retry action.
       this.onStateChange({
         status: 'error',
         query,
