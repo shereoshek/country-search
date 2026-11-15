@@ -1,3 +1,9 @@
+export interface CountryCurrency {
+  code: string;
+  name: string;
+  symbol: string;
+}
+
 export interface CountryApiResponse {
   name: string;
   flag?: string;
@@ -8,6 +14,9 @@ export interface CountryApiResponse {
   capital?: string | null;
   region?: string | null;
   population?: number;
+  area?: number | null;
+  borders?: string[] | null;
+  currencies?: CountryCurrency[] | null;
   languages?: Array<{
     name: string;
   }> | null;
@@ -19,6 +28,9 @@ export interface CountryCard {
   capital: string | null;
   region: string | null;
   population: number;
+  area: number | null;
+  borders: string[];
+  currencies: CountryCurrency[];
   languages: string[];
 }
 
@@ -29,6 +41,9 @@ export function mapCountryResponse(raw: CountryApiResponse): CountryCard {
     capital: raw.capital ?? null,
     region: raw.region ?? null,
     population: raw.population ?? 0,
+    area: raw.area ?? null,
+    borders: raw.borders ? [...raw.borders] : [],
+    currencies: raw.currencies?.map((currency) => ({ ...currency })) ?? [],
     languages: raw.languages?.map((language) => language.name) ?? [],
   };
 }

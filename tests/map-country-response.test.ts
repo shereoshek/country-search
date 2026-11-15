@@ -23,6 +23,9 @@ describe('mapCountryResponse', () => {
       capital: 'Madrid',
       region: 'Europe',
       population: 48000000,
+      area: null,
+      borders: [],
+      currencies: [],
       languages: ['Spanish', 'Catalan'],
     });
   });
@@ -62,6 +65,9 @@ describe('mapCountryResponse', () => {
       capital: null,
       region: null,
       population: 0,
+      area: null,
+      borders: [],
+      currencies: [],
       languages: [],
     });
   });
