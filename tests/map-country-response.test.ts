@@ -1,0 +1,120 @@
+import { describe, expect, it } from 'vitest';
+
+import { mapCountryResponse, type CountryApiResponse } from '../src/utils/map-country-response.js';
+
+describe('mapCountryResponse', () => {
+  it('should map all country properties correctly', () => {
+    const raw = {
+      name: 'Spain',
+      flag: '🇪🇸',
+      flags: {
+        svg: 'https://countries.dev/flags/es.svg',
+        png: 'https://countries.dev/flags/es.png',
+      },
+      capital: 'Madrid',
+      region: 'Europe',
+      population: 48000000,
+      languages: [{ name: 'Spanish' }, { name: 'Catalan' }],
+    } satisfies CountryApiResponse;
+
+    expect(mapCountryResponse(raw)).toEqual({
+      name: 'Spain',
+      flag: 'https://countries.dev/flags/es.svg',
+      capital: 'Madrid',
+      region: 'Europe',
+      population: 48000000,
+      area: null,
+      borders: [],
+      currencies: [],
+      languages: ['Spanish', 'Catalan'],
+    });
+  });
+
+  it('should use emoji when SVG flag is unavailable', () => {
+    const raw = {
+      name: 'Spain',
+      flag: '🇪🇸',
+      capital: 'Madrid',
+      region: 'Europe',
+      population: 48000000,
+      languages: [],
+    } satisfies CountryApiResponse;
+
+    expect(mapCountryResponse(raw).flag).toBe('🇪🇸');
+  });
+
+  it('should use PNG when SVG and emoji are unavailable', () => {
+    const raw = {
+      name: 'Spain',
+      flags: {
+        png: 'https://countries.dev/flags/es.png',
+      },
+    } satisfies CountryApiResponse;
+
+    expect(mapCountryResponse(raw).flag).toBe('https://countries.dev/flags/es.png');
+  });
+
+  it('should provide default values for missing optional properties', () => {
+    const raw = {
+      name: 'Nauru',
+    } satisfies CountryApiResponse;
+
+    expect(mapCountryResponse(raw)).toEqual({
+      name: 'Nauru',
+      flag: '',
+      capital: null,
+      region: null,
+      population: 0,
+      area: null,
+      borders: [],
+      currencies: [],
+      languages: [],
+    });
+  });
+
+  it('should map detailed country properties for the country view', () => {
+    const raw: CountryApiResponse & {
+      area: number;
+      borders: string[];
+      currencies: Array<{ code: string; name: string; symbol: string }>;
+    } = {
+      name: 'Spain',
+      area: 505990,
+      borders: ['AND', 'FRA', 'GIB', 'PRT'],
+      currencies: [{ code: 'EUR', name: 'Euro', symbol: '€' }],
+    };
+
+    expect(mapCountryResponse(raw)).toMatchObject({
+      area: 505990,
+      borders: ['AND', 'FRA', 'GIB', 'PRT'],
+      currencies: [{ code: 'EUR', name: 'Euro', symbol: '€' }],
+    });
+  });
+
+  it('should provide defaults for missing detailed properties', () => {
+    const raw = { name: 'Nauru' } satisfies CountryApiResponse;
+
+    expect(mapCountryResponse(raw)).toMatchObject({
+      area: null,
+      borders: [],
+      currencies: [],
+    });
+  });
+
+  it('should not modify the original API response', () => {
+    const raw = {
+      name: 'Spain',
+      flag: '🇪🇸',
+      capital: 'Madrid',
+      region: 'Europe',
+      population: 48000000,
+      languages: [{ name: 'Spanish' }],
+    } satisfies CountryApiResponse;
+
+    const original = structuredClone(raw);
+
+    mapCountryResponse(raw);
+
+    expect(raw).toEqual(original);
+  });
+});
